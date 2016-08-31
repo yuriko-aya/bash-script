@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for f in "$1"; do
+	rm ~/.hplayer/hplaylist
+	export DIR=$(pwd)
+	find -maxdepth 2 -type f -follow | grep -E "$f" | sed "s|^\.|$DIR|" | sort > ~/.hplayer/hplaylist
+	mplayer -zoom -fs -hardframedrop -nocorrect-pts -ass -vf screenshot -osdlevel 3 -subfont-osd-scale 1 -softvol -softvol-max 200 -playlist ~/.hplayer/hplaylist -shuffle
+done

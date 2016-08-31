@@ -1,0 +1,82 @@
+#!/bin/bash
+
+if [ -z "$1" ]
+  then
+    read -rp $'g.e-hentai gallery link:' url
+  else
+    url="$1"
+fi
+if [ -z "$url" ]
+  then
+    echo "Please provide a link"
+    echo "or --help for help"
+    exit
+fi 
+if [ "$url" == "--help" ]
+  then
+    echo "g.e-hentai Downloader for Linux"
+    echo " "
+    echo "Usage:"
+    echo "  exh-downloader gallery_url"
+    echo "  example: exh-downloader http://g.e-hentai.org/g/918667/f611a5c353/"
+    echo "  exh-downloader --help for this help"
+    exit
+fi
+realurl="`echo $url | grep 'http://g.e-hentai.org'`"
+if [ -z "$url" ]
+  then
+    echo "Please provide a link"
+    exit
+fi
+if [ -z "$realurl" ]
+  then
+    echo "Please provide a valid g.e-hentai link with http"
+    echo "example: http://g.e-hentai.org/g/918667/f611a5c353/"
+    exit
+fi
+echo "Starting g.e-hentai Downloader Linux"
+sleep 1
+echo "Downloading from $url"
+sleep 1
+echo "Fetching metadata..."
+page="`wget -c -q --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$url" -O- | hxselect -i "td.gdt2" | lynx -stdin -dump | grep -o -P '.{0,4}pages' | sed 's| ||;s|pages||'`"
+if [[ $page -lt 1 ]]
+  then 
+    echo "ERROR gallery not found"
+    echo "Are you sure the link was correct?"
+    exit
+fi
+pagegall="`expr $page / 40`"
+wget -c -q --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$url" -O- | hxselect -i "title" | sed 's|<title>||;s| - E-Hentai Galleries</title>||' > $HOME/.xhdownloader/g.e-hentai.title
+extitle="`cat $HOME/.xhdownloader/g.e-hentai.title`"
+mkdir "$extitle"
+cd "$extitle"
+echo "Title: $extitle"
+echo "length: $page"
+
+if [ $pagegall -ge 1 ]
+	then
+		echo "Downloading Multiple page gallery"
+		sleep 5
+		gallnum=0
+		while [[ $gallnum -le $pagegall ]]; do
+			wget -c --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$url"?p=$gallnum -O- | hxselect -i  "div.gdtm a" | lynx -stdin -dump > $HOME/.xhdownloader/xh.scrap
+			cat $HOME/.xhdownloader/xh.scrap | grep -o -P 'http://g.e-hentai.org/.{0,27}' > $HOME/.xhdownloader/xh.gall
+			while read line; do
+				wget -c -q --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$line" -O- | hxnormalize | egrep "src.*jpg|src.*png" | grep -v "ehgt" | sed 's|src="||;s|.$||' | wget -c --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie -i-
+			done < $HOME/.xhdownloader/xh.gall
+			let gallnum=$gallnum+1
+		done	
+	else
+		echo "Downloading single page gallery"
+		sleep 5
+		wget -c --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$url" -O- | hxselect -i  "div.gdtm a" | lynx -stdin -dump > $HOME/.xhdownloader/xh.scrap
+		cat $HOME/.xhdownloader/xh.scrap | grep -o -P 'http://g.e-hentai.org/.{0,27}' > $HOME/.xhdownloader/xh.gall
+		while read line; do
+			wget -c -q --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie "$line" -O- | hxnormalize | egrep "src.*jpg|src.*png" | grep -v "ehgt" | sed 's|src="||;s|.$||' | wget -c --load-cookies=$HOME/.xhdownloader/g.e-hentai.cookie -i-
+		done < $HOME/.xhdownloader/xh.gall
+fi
+rm $HOME/.xhdownloader/xh.scrap
+rm $HOME/.xhdownloader/xh.gall
+rm $HOME/.xhdownloader/g.e-hentai.title
+cd ../
