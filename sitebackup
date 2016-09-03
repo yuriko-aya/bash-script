@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#exec > /home/user/Dropbox/backup.log.txt
+sudo chmod 777 /home/user/Dropbox/backup.log.txt
+echo backup start at `date`
+echo deleting old backup files 10 days old
+find /home/user/Dropbox/backup_* -mtime +10 -delete
+echo deleting old backup files done
+echo backuping database with mysqldump
+mysqldump -u root -ppassword dbname | gzip > "/home/user/Dropbox/backup_db/dbname_`date +%Y-%m-%d`.sql.gz"
+echo database backup done
+echo creating backup site
+sudo tar Jcf "/home/user/Dropbox/backup_site/sitename_`date +%Y-%m-%d`.tar.xz" /var/www/html/sitename
+echo backup ahmad-sans_`date +%Y-%m-%d`.tar.xz done
+echo backup site done
+echo setup permission
+sudo chown -R user:user /home/user/Dropbox/backup_*
+sudo chmod -R 755  /home/user/Dropbox/backup_*
+echo setup permission done
+echo backup ended at `date`
+
