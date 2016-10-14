@@ -1,0 +1,25 @@
+#!/bin/bash
+
+function first() {
+  cat /dev/urandom | tr -dc 'A-Z' | fold -w 4 | head -n 1
+}
+
+function second() {
+  cat /dev/urandom | tr -dc 'A-Z0-9' | fold -w 6 | head -n 1
+}
+
+function third() {
+  cat /dev/urandom | tr -dc 'A-Z0-9' | fold -w 4 | head -n 1
+}
+
+if [[ -z "$1" ]]
+  then
+    count=1
+  else
+    count="$1"
+fi
+gen=0
+while [[ $gen -lt $count ]]; do
+  echo `first`-`second`-`third`
+  let gen=$gen+1
+done
