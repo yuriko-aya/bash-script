@@ -1,0 +1,91 @@
+#!/bin/bash
+
+#######################################
+#
+# Backup to MediaFire with mediafire-fuse
+# of course you need install mediafire-fuse
+# create mf mount point (/media/mediafire)
+# create backup folder inside your mf account
+# create temp backup directory (/opt/backup)
+# also need gnupg for encrypt backup file
+# and make sure you have more than 50% disk space
+#
+#######################################
+
+PATH=/usr/local/bin:/usr/bin:/bin:$PATH
+cd /home/user/sandbox
+
+echo "Searching mediafire-fuse installation"
+installmf=$(which mediafire-fuse)
+if [ -z $installmf ]
+  then
+    echo "mediafire-fuse not found, install it first."
+    echo "http://github.com/mediafire/mediafire-fuse"
+    exit
+fi
+
+echo "Searching gnupg installation"
+installgnupg=$(which pgp)
+if [ -z $installgnupg ]
+  then
+    echo "gnupg not found, install it first."
+    exit
+fi
+
+echo "Cheking available password for encrypting"
+gnupgpass=$(cat /home/user/pgpasswd)
+if [ -z $gnupgpass ]
+  then
+    echo "You cannot have empty password for encryption."
+    exit
+fi
+
+echo "Cheking if mediafire-fuse is running"
+mf=$(pgrep mediafire-fuse)
+if [ -z $mf ]
+  then
+    echo "Starting mediafire-fuse"
+    mediafire-fuse -o allow_other --username username@provider.domain --password yourpassword /media/mediafire
+    mf=$(pgrep mediafire-fuse)
+fi
+
+if [ -z $mf ]
+  then
+    echo "Error starting mediafire-fuse"
+    echo "Something wrong here, please make sure mediafire-fuse can run properly and your command on starting media fire-fuse is correct"
+    exit
+fi
+
+tempbackdir="/opt/backup"
+backdir="/media/mediafire/backup"
+
+echo "Deleting old backup"
+cd $backdir/
+find -type f -mtime +90 -delete
+
+echo "Backuping ALL Web Application"
+cd /var/
+tar -Jcf "$tempbackdir/www_$(date +%Y-%m-%d).tar.xz" www
+cd $tempbackdir
+cat /home/user/pgpasswd | gpg --no-tty -c --passphrase-fd 0 "www_$(date +%Y-%m-%d).tar.xz"
+mv "www_$(date +%Y-%m-%d).tar.xz.gpg" "$backdir/www_$(date +%Y-%m-%d).tar.xz.gpg"
+rm "www_$(date +%Y-%m-%d).tar.xz"
+echo "Backup www_$(date +%Y-%m-%d).tar.xz finished"
+
+echo "Backuping server configuration"
+cd /
+tar -Jcf "$tempbackdir/etc_$(date +%Y-%m-%d).tar.xz" etc
+cd $tempbackdir
+cat /home/user/pgpasswd | gpg --no-tty -c --passphrase-fd 0 "etc_$(date +%Y-%m-%d).tar.xz"
+mv "etc_$(date +%Y-%m-%d).tar.xz.gpg" "$backdir/etc_$(date +%Y-%m-%d).tar.xz.gpg"
+rm "etc_$(date +%Y-%m-%d).tar.xz"
+echo "Backup etc_$(date +%Y-%m-%d).tar.xz finished"
+
+echo "Backuping ALL database"
+cd $tempbackdir
+mysqldump -u root -ppassword --all-databases > "all_database_$(date +%Y-%m-%d).sql"
+cat /home/user/pgpasswd | gpg --no-tty -c --passphrase-fd 0 "all_database_$(date +%Y-%m-%d).sql"
+mv "all_database_$(date +%Y-%m-%d).sql.gpg" "$backdir/database/all_database_$(date +%Y-%m-%d).sql.gpg"
+rm "all_database_$(date +%Y-%m-%d).sql"
+echo "Backup ALL database done"
+
