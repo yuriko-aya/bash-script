@@ -1,0 +1,16 @@
+#!/bin/bash
+
+for f in *.mkv; do
+    ffmpeg -y -dump_attachment:t "" -i "$f"
+    mv -v *.ttf ~/.fonts/
+    mv -v *.TTF ~/.fonts/
+    mv -v *.otf ~/.fonts/
+    mv -v *.OTF ~/.fonts/
+    mv -v *.ttc ~/.fonts/
+    mv -v *.TTC ~/.fonts/
+    ffmpeg -y -i "$f" -vn -an -c:s copy "$f".ass
+    ffmpeg -y -i "$f" -c:v libx264 -level 4.1 -preset veryslow -bf 5 -pix_fmt yuv420p -s 1024x576 -b:v 490k -vf "ass='$f'.ass" -tune animation -aq-mode 2 -trellis 1 -weightb 1 -weightp smart -partitions all -motion-est 1 -b-pyramid normal -refs 10 -rc-lookahead 60 -subq 7 -qmin 10 -qmax 51 -qdiff 4 -bufsize 782k -maxrate 625k -pass 1 -c:a libfdk_aac -b:a 32k -profile:a aac_he_v2 -f mp4 /dev/null
+    sleep 30
+    ffmpeg -y -i "$f" -c:v libx264 -level 4.1 -preset veryslow -bf 5 -pix_fmt yuv420p -s 1024x576 -b:v 490k -vf "ass='$f'.ass" -tune animation -aq-mode 2 -trellis 1 -weightb 1 -weightp smart -partitions all -motion-est 1 -b-pyramid normal -refs 10 -rc-lookahead 60 -subq 7 -qmin 10 -qmax 51 -qdiff 4 -bufsize 782k -maxrate 625k -pass 2 -c:a libfdk_aac -b:a 32k -profile:a aac_he_v2 "${f%mkv}"mp4
+    sleep 60
+done
